@@ -496,6 +496,9 @@
                 <button class="btn btn-primary" onclick="autoAssign()">
                     자동 배치
                 </button>
+                <button class="btn btn-danger" onclick="clearAllDataAdmin()">
+                    데이터 초기화
+                </button>
             </div>
         </div>
 
@@ -504,7 +507,7 @@
             <div class="calendar-header">
                 <div class="month-navigation">
                     <button class="nav-btn" onclick="previousMonth()">‹</button>
-                    <div class="current-month" id="currentMonth">2025년 6월</div>
+                    <div class="current-month" id="currentMonth">2025년 7월</div>
                     <button class="nav-btn" onclick="nextMonth()">›</button>
                 </div>
                 <div>
@@ -533,7 +536,7 @@
         <div class="modal-content">
             <button class="close-btn" onclick="closeManageModal()">&times;</button>
             <div class="modal-header">
-                <div class="modal-title" id="manageModalTitle">6월 25일 당직 배치</div>
+                <div class="modal-title" id="manageModalTitle">7월 1일 당직 배치</div>
                 <div class="modal-subtitle">당직별 신청자를 확인하고 배치를 결정하세요</div>
             </div>
             
@@ -559,7 +562,44 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         
-        // Firebase 관리자 함수들
+        // 전역 변수
+        let currentDate = new Date();
+        let applications = [];
+        let confirmedDuties = [];
+        let applicationEnabled = true;
+
+        // 당직 종류 정의 (수정된 버전)
+        const dutyTypes = [
+            { id: 'commander_total', name: '당직총사령생도', grade: 4, type: '근무생도', buildings: [1, 2] },
+            { id: 'commander_wing', name: '전대당직사관생도(4)', grade: 4, type: '평생도', buildings: [1, 2] },
+            { id: 'officer_wing', name: '전대당직사관생도(3)', grade: 3, type: '일반', buildings: [1, 2] },
+            { id: 'commander_battalion_1', name: '1대대당직사령생도', grade: 4, type: '평생도', buildings: [1] },
+            { id: 'officer_battalion_1', name: '1대대당직사관생도', grade: 3, type: '일반', buildings: [1] },
+            { id: 'commander_battalion_2', name: '2대대당직사령생도', grade: 4, type: '평생도', buildings: [2] },
+            { id: 'officer_battalion_2', name: '2대대당직사관생도', grade: 3, type: '일반', buildings: [2] }
+        ];
+
+        // 로컬 날짜를 YYYY-MM-DD 형식으로 변환하는 헬퍼 함수
+        function formatLocalDate(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        // 특정 날짜에 사용할 당직 종류 결정
+        function getDutiesForDate(date) {
+            const dayOfWeek = date.getDay(); // 0: 일요일, 1: 월요일, ..., 6: 토요일
+            
+            // 금요일(5)과 토요일(6)에는 전대당직사관생도(3) 제외
+            if (dayOfWeek === 5 || dayOfWeek === 6) {
+                return dutyTypes.filter(duty => duty.id !== 'officer_wing');
+            } else {
+                return dutyTypes;
+            }
+        }
+
+        // Firebase 함수들
         
         // 신청 활성화/비활성화 설정
         async function setApplicationStatus(enabled) {
@@ -654,60 +694,6 @@
                 return { success: false, error: error.message };
             }
         }
-        
-        // 모든 데이터 삭제
-        async function clearAllData() {
-            try {
-                const batch = db.batch();
-                
-                // applications 컬렉션 삭제
-                const appsSnapshot = await db.collection('applications').get();
-                appsSnapshot.forEach(doc => {
-                    batch.delete(doc.ref);
-                });
-                
-                // confirmedDuties 컬렉션 삭제
-                const dutiesSnapshot = await db.collection('confirmedDuties').get();
-                dutiesSnapshot.forEach(doc => {
-                    batch.delete(doc.ref);
-                });
-                
-                await batch.commit();
-                return { success: true };
-            } catch (error) {
-                console.error('데이터 삭제 오류:', error);
-                return { success: false, error: error.message };
-            }
-        }
-        
-        // 전역 변수
-        let currentDate = new Date();
-        let applications = [];
-        let confirmedDuties = [];
-        let applicationEnabled = true;
-
-        // 당직 종류 정의 (수정된 버전)
-        const dutyTypes = [
-            { id: 'commander_total', name: '당직총사령생도', grade: 4, type: '근무생도', buildings: [1, 2] },
-            { id: 'commander_wing', name: '전대당직사관생도(4)', grade: 4, type: '평생도', buildings: [1, 2] },
-            { id: 'officer_wing', name: '전대당직사관생도(3)', grade: 3, type: '일반', buildings: [1, 2] },
-            { id: 'commander_battalion_1', name: '1대대당직사령생도', grade: 4, type: '평생도', buildings: [1] },
-            { id: 'officer_battalion_1', name: '1대대당직사관생도', grade: 3, type: '일반', buildings: [1] },
-            { id: 'commander_battalion_2', name: '2대대당직사령생도', grade: 4, type: '평생도', buildings: [2] },
-            { id: 'officer_battalion_2', name: '2대대당직사관생도', grade: 3, type: '일반', buildings: [2] }
-        ];
-
-        // 특정 날짜에 사용할 당직 종류 결정
-        function getDutiesForDate(date) {
-            const dayOfWeek = date.getDay(); // 0: 일요일, 1: 월요일, ..., 6: 토요일
-            
-            // 금요일(5)과 토요일(6)에는 전대당직사관생도(3) 제외
-            if (dayOfWeek === 5 || dayOfWeek === 6) {
-                return dutyTypes.filter(duty => duty.id !== 'officer_wing');
-            } else {
-                return dutyTypes;
-            }
-        }
 
         // 페이지 로드시 초기화
         window.addEventListener('DOMContentLoaded', async function() {
@@ -789,7 +775,7 @@
                     dayElement.classList.add('today');
                 }
                 
-                const dateStr = cellDate.toISOString().split('T')[0];
+                const dateStr = formatLocalDate(cellDate);
                 
                 // 날짜별 상태 확인 및 클래스 추가
                 const hasApplications = applications.some(a => a.date === dateStr);
@@ -861,7 +847,7 @@
 
         // 당직 배치 관리 모달 표시 (수정된 버전)
         function showManageModal(dateStr) {
-            const date = new Date(dateStr);
+            const date = new Date(dateStr + 'T00:00:00'); // 로컬 시간으로 파싱
             const title = `${date.getMonth() + 1}월 ${date.getDate()}일 당직 배치`;
             document.getElementById('manageModalTitle').textContent = title;
             
@@ -982,7 +968,7 @@
             }
         }
 
-        // 자동 배치 (선착순) (수정된 버전)
+        // 자동 배치 (선착순)
         async function autoAssign() {
             if (!confirm('모든 미배치 당직을 선착순으로 자동 배치하시겠습니까?')) {
                 return;
@@ -995,7 +981,7 @@
             const allDates = [...new Set(applications.map(a => a.date))];
             
             allDates.forEach(dateStr => {
-                const date = new Date(dateStr);
+                const date = new Date(dateStr + 'T00:00:00'); // 로컬 시간으로 파싱
                 const dutiesForDate = getDutiesForDate(date);
                 
                 dutiesForDate.forEach(duty => {
@@ -1034,34 +1020,7 @@
             }
         }
 
-        // 관리 모달 닫기
-        function closeManageModal() {
-            document.getElementById('manageModal').classList.remove('show');
-        }
-
-        // 데이터 내보내기
-        function exportData() {
-            const data = {
-                applications: applications,
-                confirmedDuties: confirmedDuties,
-                users: JSON.parse(localStorage.getItem('users') || '[]')
-            };
-            
-            const dataStr = JSON.stringify(data, null, 2);
-            const dataBlob = new Blob([dataStr], { type: 'application/json' });
-            
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(dataBlob);
-            link.download = `duty_data_${new Date().toISOString().split('T')[0]}.json`;
-            link.click();
-        }
-
-        // 데이터 내보내기 (삭제된 함수 대신 빈 함수로 유지)
-        function exportData() {
-            // 삭제됨
-        }
-
-        // 모든 데이터 초기화 (수정된 함수명)
+        // 모든 데이터 초기화
         async function clearAllDataAdmin() {
             if (confirm('정말로 모든 데이터를 초기화하시겠습니까?\n이 작업은 되돌릴 수 없습니다.')) {
                 try {
@@ -1090,6 +1049,11 @@
                     alert('데이터 초기화 중 오류가 발생했습니다: ' + error.message);
                 }
             }
+        }
+
+        // 관리 모달 닫기
+        function closeManageModal() {
+            document.getElementById('manageModal').classList.remove('show');
         }
 
         // 일반 화면으로 이동
