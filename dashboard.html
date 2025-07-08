@@ -1205,7 +1205,12 @@
                 const confirmed = confirmedDuties.find(c => c.date === dateStr && c.dutyId === duty.id);
                 const dayApplications = applications
                     .filter(a => a.date === dateStr && a.dutyId === duty.id)
-                    .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+                    .sort((a, b) => {
+                        // createdAt이 있으면 createdAt 기준, 없으면 timestamp 기준
+                        const timeA = a.createdAt ? a.createdAt.toDate() : new Date(a.timestamp);
+                        const timeB = b.createdAt ? b.createdAt.toDate() : new Date(b.timestamp);
+                        return timeA - timeB;
+                    });
                 
                 content += `<div class="application-item">
                     <div class="application-header">
