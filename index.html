@@ -120,6 +120,33 @@
             display: block;
         }
 
+        /* 조건부 필드 내의 form-group 스타일 통일 */
+        .conditional-field .form-group {
+            margin-bottom: 20px;
+        }
+
+        .conditional-field .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .conditional-field .form-group select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        .conditional-field .form-group select:focus {
+            outline: none;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
         .btn {
             width: 100%;
             padding: 15px;
@@ -237,11 +264,14 @@
                 </div>
                 <!-- 4학년일 때만 보이는 추가 선택지 -->
                 <div id="commanderField" class="conditional-field">
-                    <label for="registerType">근무 구분</label>
-                    <select id="registerType">
-                        <option value="평생도">평생도</option>
-                        <option value="근무생도">근무생도 (지휘근무생도)</option>
-                    </select>
+                    <div class="form-group">
+                        <label for="registerType">근무 구분</label>
+                        <select id="registerType">
+                            <option value="">근무 구분 선택</option>
+                            <option value="평생도">평생도</option>
+                            <option value="근무생도">근무생도 (지휘근무생도)</option>
+                        </select>
+                    </div>
                 </div>
                 <button type="submit" class="btn btn-primary">회원가입</button>
             </form>
