@@ -845,6 +845,14 @@
             }
         }
 
+        // 로컬 날짜를 YYYY-MM-DD 형식으로 변환하는 헬퍼 함수
+        function formatLocalDate(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
         // 달력 업데이트
         function updateCalendar() {
             const year = currentDate.getFullYear();
@@ -882,7 +890,7 @@
                     dayElement.classList.add('today');
                 }
                 
-                const dateStr = cellDate.toISOString().split('T')[0];
+                const dateStr = formatLocalDate(cellDate);
                 
                 // 날짜별 상태 확인 및 클래스 추가
                 const hasConfirmed = confirmedDuties.some(c => c.date === dateStr);
@@ -1096,7 +1104,7 @@
             // 해당 월의 모든 날짜 추가
             for (let day = 1; day <= lastDay; day++) {
                 const date = new Date(year, month, day);
-                const dateStr = date.toISOString().split('T')[0];
+                const dateStr = formatLocalDate(date);
                 const dateText = `${month + 1}월 ${day}일`;
                 
                 // 일반 select에 추가
@@ -1184,7 +1192,7 @@
 
         // 날짜별 현황 모달 표시 (수정된 버전)
         function showDayModal(dateStr) {
-            const date = new Date(dateStr);
+            const date = new Date(dateStr + 'T00:00:00'); // 로컬 시간으로 파싱
             const title = `${date.getMonth() + 1}월 ${date.getDate()}일 당직 현황`;
             document.getElementById('dayModalTitle').textContent = title;
             
@@ -1247,12 +1255,12 @@
                     
                     // 현재 열린 모달도 새로고침
                     const modalTitle = document.getElementById('dayModalTitle').textContent;
-                    const dateStr = modalTitle.match(/(\d+)월 (\d+)일/);
-                    if (dateStr) {
-                        const month = parseInt(dateStr[1]);
-                        const day = parseInt(dateStr[2]);
+                    const dateMatch = modalTitle.match(/(\d+)월 (\d+)일/);
+                    if (dateMatch) {
+                        const month = parseInt(dateMatch[1]);
+                        const day = parseInt(dateMatch[2]);
                         const year = currentDate.getFullYear();
-                        const fullDateStr = new Date(year, month - 1, day).toISOString().split('T')[0];
+                        const fullDateStr = formatLocalDate(new Date(year, month - 1, day));
                         showDayModal(fullDateStr);
                     }
                 } else {
