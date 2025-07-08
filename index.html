@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>당직 신청 시스템</title>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo h1 {
+            color: #4f46e5;
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .logo p {
+            color: #6b7280;
+            font-size: 1rem;
+        }
+
+        .tab-buttons {
+            display: flex;
+            margin-bottom: 30px;
+            background: #f3f4f6;
+            border-radius: 10px;
+            padding: 5px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            background: transparent;
+            border-radius: 7px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .tab-btn.active {
+            background: white;
+            color: #4f46e5;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .form-container {
+            display: none;
+        }
+
+        .form-container.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        .conditional-field {
+            display: none;
+            margin-top: 15px;
+        }
+
+        .conditional-field.show {
+            display: block;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(79, 70, 229, 0.3);
+        }
+
+        .error-message {
+            background: #fee2e2;
+            color: #dc2626;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .success-message {
+            background: #d1fae5;
+            color: #065f46;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        /* 모바일 대응 */
+        @media (max-width: 480px) {
+            .container {
+                margin: 20px;
+                padding: 30px 20px;
+            }
+            
+            .logo h1 {
+                font-size: 1.7rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <h1>🎖️ 당직 신청 시스템</h1>
+            <p>군사학교 당직 관리 시스템</p>
+        </div>
+
+        <!-- 에러/성공 메시지 -->
+        <div id="errorMessage" class="error-message"></div>
+        <div id="successMessage" class="success-message"></div>
+
+        <!-- 탭 버튼 -->
+        <div class="tab-buttons">
+            <button class="tab-btn active" onclick="showTab('login')">로그인</button>
+            <button class="tab-btn" onclick="showTab('register')">회원가입</button>
+        </div>
+
+        <!-- 로그인 폼 -->
+        <div id="loginForm" class="form-container active">
+            <form onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label for="loginId">사용자 ID</label>
+                    <input type="text" id="loginId" required>
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">비밀번호</label>
+                    <input type="password" id="loginPassword" required>
+                </div>
+                <button type="submit" class="btn btn-primary">로그인</button>
+            </form>
+        </div>
+
+        <!-- 회원가입 폼 -->
+        <div id="registerForm" class="form-container">
+            <form onsubmit="handleRegister(event)">
+                <div class="form-group">
+                    <label for="registerId">사용자 ID</label>
+                    <input type="text" id="registerId" required>
+                </div>
+                <div class="form-group">
+                    <label for="registerPassword">비밀번호</label>
+                    <input type="password" id="registerPassword" required>
+                </div>
+                <div class="form-group">
+                    <label for="registerName">이름</label>
+                    <input type="text" id="registerName" required>
+                </div>
+                <div class="form-group">
+                    <label for="registerGrade">학년</label>
+                    <select id="registerGrade" required onchange="handleGradeChange()">
+                        <option value="">학년 선택</option>
+                        <option value="3">3학년</option>
+                        <option value="4">4학년</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="registerBattalion">대대</label>
+                    <select id="registerBattalion" required>
+                        <option value="">대대 선택</option>
+                        <option value="1">1대대</option>
+                        <option value="2">2대대</option>
+                    </select>
+                </div>
+                <!-- 4학년일 때만 보이는 추가 선택지 -->
+                <div id="commanderField" class="conditional-field">
+                    <label for="registerType">근무 구분</label>
+                    <select id="registerType">
+                        <option value="평생도">평생도</option>
+                        <option value="근무생도">근무생도 (지휘근무생도)</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary">회원가입</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Firebase 설정
+        const firebaseConfig = {
+            apiKey: "AIzaSyBkIa2eGEOMYMGV5qBHgbX2pXPTMj5HB8Q",
+            authDomain: "kafa-data.firebaseapp.com",
+            projectId: "kafa-data",
+            storageBucket: "kafa-data.firebasestorage.app",
+            messagingSenderId: "792860102609",
+            appId: "1:792860102609:web:5c6518beda0b7bf3f95af0",
+            measurementId: "G-K9JQ2SFDFF"
+        };
+        
+        // Firebase 초기화
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        
+        // Firebase 함수들
+        
+        // 사용자 등록
+        async function registerUser(userData) {
+            try {
+                const docRef = await db.collection('users').add({
+                    ...userData,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                return { success: true, id: docRef.id };
+            } catch (error) {
+                console.error('사용자 등록 오류:', error);
+                return { success: false, error: error.message };
+            }
+        }
+        
+        // 사용자 로그인 확인
+        async function checkUserLogin(id, password) {
+            try {
+                const snapshot = await db.collection('users')
+                    .where('id', '==', id)
+                    .where('password', '==', password)
+                    .get();
+                
+                if (!snapshot.empty) {
+                    const userData = snapshot.docs[0].data();
+                    return { success: true, user: userData };
+                } else {
+                    return { success: false, error: '아이디 또는 비밀번호가 잘못되었습니다.' };
+                }
+            } catch (error) {
+                console.error('로그인 확인 오류:', error);
+                return { success: false, error: '로그인 중 오류가 발생했습니다.' };
+            }
+        }
+        
+        // 사용자 ID 중복 확인
+        async function checkUserIdExists(id) {
+            try {
+                const snapshot = await db.collection('users').where('id', '==', id).get();
+                return !snapshot.empty;
+            } catch (error) {
+                console.error('ID 중복 확인 오류:', error);
+                return false;
+            }
+        }
+        
+        // 탭 전환 함수
+        function showTab(tabName) {
+            // 모든 탭 숨기기
+            document.querySelectorAll('.form-container').forEach(container => {
+                container.classList.remove('active');
+            });
+            
+            // 모든 버튼 비활성화
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // 선택된 탭 보이기
+            if (tabName === 'login') {
+                document.getElementById('loginForm').classList.add('active');
+            } else {
+                document.getElementById('registerForm').classList.add('active');
+            }
+            
+            // 클릭된 버튼 활성화
+            event.target.classList.add('active');
+            
+            // 메시지 숨기기
+            hideMessages();
+        }
+
+        // 4학년 선택시 추가 필드 보이기
+        function handleGradeChange() {
+            const grade = document.getElementById('registerGrade').value;
+            const commanderField = document.getElementById('commanderField');
+            
+            if (grade === '4') {
+                commanderField.classList.add('show');
+            } else {
+                commanderField.classList.remove('show');
+            }
+        }
+
+        // 메시지 숨기기
+        function hideMessages() {
+            document.getElementById('errorMessage').style.display = 'none';
+            document.getElementById('successMessage').style.display = 'none';
+        }
+
+        // 에러 메시지 표시
+        function showError(message) {
+            hideMessages();
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        // 성공 메시지 표시
+        function showSuccess(message) {
+            hideMessages();
+            const successDiv = document.getElementById('successMessage');
+            successDiv.textContent = message;
+            successDiv.style.display = 'block';
+        }
+
+        // 로그인 처리
+        async function handleLogin(event) {
+            event.preventDefault();
+            
+            const id = document.getElementById('loginId').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            // 관리자 계정 확인
+            if (id === 'admin' && password === 'admin123') {
+                showSuccess('관리자 로그인 성공!');
+                setTimeout(() => {
+                    window.location.href = 'admin.html';
+                }, 1000);
+                return;
+            }
+            
+            // Firebase에서 사용자 확인
+            const result = await checkUserLogin(id, password);
+            
+            if (result.success) {
+                showSuccess(`${result.user.name}님 환영합니다!`);
+                // 사용자 정보를 localStorage에 임시 저장 (세션용)
+                localStorage.setItem('currentUser', JSON.stringify(result.user));
+                setTimeout(() => {
+                    window.location.href = 'dashboard.html';
+                }, 1000);
+            } else {
+                showError(result.error);
+            }
+        }
+
+        // 회원가입 처리
+        async function handleRegister(event) {
+            event.preventDefault();
+            
+            const id = document.getElementById('registerId').value;
+            const password = document.getElementById('registerPassword').value;
+            const name = document.getElementById('registerName').value;
+            const grade = document.getElementById('registerGrade').value;
+            const battalion = document.getElementById('registerBattalion').value;
+            const type = document.getElementById('registerType').value;
+            
+            // 입력값 검증
+            if (!id || !password || !name || !grade || !battalion) {
+                showError('모든 필드를 입력해주세요.');
+                return;
+            }
+            
+            // 4학년인데 근무 구분을 선택하지 않은 경우
+            if (grade === '4' && !type) {
+                showError('4학년은 근무 구분을 선택해야 합니다.');
+                return;
+            }
+            
+            // ID 중복 확인
+            const idExists = await checkUserIdExists(id);
+            if (idExists) {
+                showError('이미 존재하는 ID입니다.');
+                return;
+            }
+            
+            // 새 사용자 정보 생성
+            const newUser = {
+                id: id,
+                password: password,
+                name: name,
+                grade: parseInt(grade),
+                battalion: parseInt(battalion),
+                type: grade === '4' ? type : '일반' // 3학년은 자동으로 '일반'
+            };
+            
+            // Firebase에 사용자 등록
+            const result = await registerUser(newUser);
+            
+            if (result.success) {
+                showSuccess('회원가입이 완료되었습니다! 로그인해주세요.');
+                
+                // 폼 초기화
+                document.getElementById('registerForm').querySelector('form').reset();
+                document.getElementById('commanderField').classList.remove('show');
+                
+                // 로그인 탭으로 전환
+                setTimeout(() => {
+                    showTab('login');
+                }, 1500);
+            } else {
+                showError('회원가입 중 오류가 발생했습니다: ' + result.error);
+            }
+        }
+
+        // 페이지 로드시 초기화
+        window.addEventListener('DOMContentLoaded', function() {
+            console.log('Firebase 연결 상태:', firebase.apps.length > 0 ? '연결됨' : '연결 안됨');
+            
+            // Firebase 연결 테스트
+            if (firebase.apps.length > 0) {
+                console.log('Firebase가 정상적으로 초기화되었습니다.');
+            } else {
+                console.error('Firebase 초기화에 실패했습니다.');
+            }
+        });
+    </script>
+</body>
+</html>
