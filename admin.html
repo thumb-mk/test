@@ -686,16 +686,28 @@
         let confirmedDuties = [];
         let applicationEnabled = true;
 
-        // 당직 종류 정의
+        // 당직 종류 정의 (수정된 버전)
         const dutyTypes = [
-            { id: 'commander_total', name: '당직총사령', grade: 4, type: '근무생도', buildings: [1, 2] },
-            { id: 'commander_wing', name: '전대당직사령', grade: 4, type: '평생도', buildings: [1, 2] },
-            { id: 'officer_wing', name: '전대당직사관', grade: 3, type: '일반', buildings: [1, 2] },
-            { id: 'commander_battalion_1', name: '1대대당직사령', grade: 4, type: '평생도', buildings: [1] },
-            { id: 'officer_battalion_1', name: '1대대당직사관', grade: 3, type: '일반', buildings: [1] },
-            { id: 'commander_battalion_2', name: '2대대당직사령', grade: 4, type: '평생도', buildings: [2] },
-            { id: 'officer_battalion_2', name: '2대대당직사관', grade: 3, type: '일반', buildings: [2] }
+            { id: 'commander_total', name: '당직총사령생도', grade: 4, type: '근무생도', buildings: [1, 2] },
+            { id: 'commander_wing', name: '전대당직사관생도(4)', grade: 4, type: '평생도', buildings: [1, 2] },
+            { id: 'officer_wing', name: '전대당직사관생도(3)', grade: 3, type: '일반', buildings: [1, 2] },
+            { id: 'commander_battalion_1', name: '1대대당직사령생도', grade: 4, type: '평생도', buildings: [1] },
+            { id: 'officer_battalion_1', name: '1대대당직사관생도', grade: 3, type: '일반', buildings: [1] },
+            { id: 'commander_battalion_2', name: '2대대당직사령생도', grade: 4, type: '평생도', buildings: [2] },
+            { id: 'officer_battalion_2', name: '2대대당직사관생도', grade: 3, type: '일반', buildings: [2] }
         ];
+
+        // 특정 날짜에 사용할 당직 종류 결정
+        function getDutiesForDate(date) {
+            const dayOfWeek = date.getDay(); // 0: 일요일, 1: 월요일, ..., 6: 토요일
+            
+            // 금요일(5)과 토요일(6)에는 전대당직사관생도(3) 제외
+            if (dayOfWeek === 5 || dayOfWeek === 6) {
+                return dutyTypes.filter(duty => duty.id !== 'officer_wing');
+            } else {
+                return dutyTypes;
+            }
+        }
 
         // 페이지 로드시 초기화
         window.addEventListener('DOMContentLoaded', async function() {
@@ -792,7 +804,7 @@
                 dayElement.innerHTML = `
                     <div class="day-number">${cellDate.getDate()}</div>
                     <div class="duty-list" id="duties-${dateStr}">
-                        ${generateDutyList(dateStr)}
+                        ${generateDutyList(dateStr, cellDate)}
                     </div>
                 `;
                 
@@ -801,28 +813,31 @@
             }
         }
 
-        // 특정 날짜의 당직 목록 생성
-        function generateDutyList(dateStr) {
+        // 특정 날짜의 당직 목록 생성 (수정된 버전)
+        function generateDutyList(dateStr, date) {
             let html = '';
             
-            dutyTypes.forEach(duty => {
+            // 해당 날짜에 사용할 당직 종류 결정
+            const dutiesForDate = getDutiesForDate(date);
+            
+            dutiesForDate.forEach(duty => {
                 const confirmed = confirmedDuties.find(c => c.date === dateStr && c.dutyId === duty.id);
                 
                 if (confirmed) {
                     html += `<div class="duty-item confirmed">
-                        <span class="duty-role">${duty.name.replace(/당직/g, '').slice(0, 3)}</span>
+                        <span class="duty-role">${duty.name.replace(/당직|생도/g, '').slice(0, 4)}</span>
                         <span class="duty-name">${confirmed.userName}</span>
                     </div>`;
                 } else {
                     const applicationCount = applications.filter(a => a.date === dateStr && a.dutyId === duty.id).length;
                     if (applicationCount > 0) {
                         html += `<div class="duty-item pending">
-                            <span class="duty-role">${duty.name.replace(/당직/g, '').slice(0, 3)}</span>
+                            <span class="duty-role">${duty.name.replace(/당직|생도/g, '').slice(0, 4)}</span>
                             <span class="duty-name">${applicationCount}명</span>
                         </div>`;
                     } else {
                         html += `<div class="duty-item empty">
-                            <span class="duty-role">${duty.name.replace(/당직/g, '').slice(0, 3)}</span>
+                            <span class="duty-role">${duty.name.replace(/당직|생도/g, '').slice(0, 4)}</span>
                             <span class="duty-name">-</span>
                         </div>`;
                     }
@@ -830,11 +845,6 @@
             });
             
             return html;
-        }
-
-        // 배치 대기 중인 당직 수 계산 (삭제된 함수)
-        function getPendingAssignmentsCount(dateStr) {
-            return 0; // 더 이상 사용하지 않음
         }
 
         // 이전 달
@@ -849,7 +859,7 @@
             updateCalendar();
         }
 
-        // 당직 배치 관리 모달 표시
+        // 당직 배치 관리 모달 표시 (수정된 버전)
         function showManageModal(dateStr) {
             const date = new Date(dateStr);
             const title = `${date.getMonth() + 1}월 ${date.getDate()}일 당직 배치`;
@@ -857,7 +867,10 @@
             
             let content = '';
             
-            dutyTypes.forEach(duty => {
+            // 해당 날짜에 사용할 당직 종류 결정
+            const dutiesForDate = getDutiesForDate(date);
+            
+            dutiesForDate.forEach(duty => {
                 const confirmed = confirmedDuties.find(c => c.date === dateStr && c.dutyId === duty.id);
                 const dayApplications = applications
                     .filter(a => a.date === dateStr && a.dutyId === duty.id)
@@ -969,7 +982,7 @@
             }
         }
 
-        // 자동 배치 (선착순)
+        // 자동 배치 (선착순) (수정된 버전)
         async function autoAssign() {
             if (!confirm('모든 미배치 당직을 선착순으로 자동 배치하시겠습니까?')) {
                 return;
@@ -981,19 +994,22 @@
             // 모든 날짜의 모든 당직 확인
             const allDates = [...new Set(applications.map(a => a.date))];
             
-            allDates.forEach(date => {
-                dutyTypes.forEach(duty => {
-                    const confirmed = confirmedDuties.find(c => c.date === date && c.dutyId === duty.id);
+            allDates.forEach(dateStr => {
+                const date = new Date(dateStr);
+                const dutiesForDate = getDutiesForDate(date);
+                
+                dutiesForDate.forEach(duty => {
+                    const confirmed = confirmedDuties.find(c => c.date === dateStr && c.dutyId === duty.id);
                     
                     if (!confirmed) {
                         const dayApplications = applications
-                            .filter(a => a.date === date && a.dutyId === duty.id)
+                            .filter(a => a.date === dateStr && a.dutyId === duty.id)
                             .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
                         
                         if (dayApplications.length > 0) {
                             const firstApplicant = dayApplications[0];
                             const newAssignment = {
-                                date: date,
+                                date: dateStr,
                                 dutyId: duty.id,
                                 userId: firstApplicant.userId,
                                 userName: firstApplicant.userName
