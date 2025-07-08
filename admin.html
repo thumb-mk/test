@@ -860,7 +860,12 @@
                 const confirmed = confirmedDuties.find(c => c.date === dateStr && c.dutyId === duty.id);
                 const dayApplications = applications
                     .filter(a => a.date === dateStr && a.dutyId === duty.id)
-                    .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+                    .sort((a, b) => {
+                        // createdAt이 있으면 createdAt 기준, 없으면 timestamp 기준
+                        const timeA = a.createdAt ? a.createdAt.toDate() : new Date(a.timestamp);
+                        const timeB = b.createdAt ? b.createdAt.toDate() : new Date(b.timestamp);
+                        return timeA - timeB;
+                    });
                 
                 let statusClass = 'empty';
                 let statusText = '신청자 없음';
@@ -899,13 +904,17 @@
                     `;
                 } else if (dayApplications.length > 0) {
                     dayApplications.forEach((app, index) => {
+                        // 신청 시간 표시 (createdAt 우선, 없으면 timestamp)
+                        const appTime = app.createdAt ? app.createdAt.toDate() : new Date(app.timestamp);
+                        const timeDisplay = appTime.toLocaleDateString() + ' ' + appTime.toLocaleTimeString();
+                        
                         content += `
                             <div class="applicant-item">
                                 <div class="applicant-info">
                                     <div class="applicant-order">${index + 1}</div>
                                     <div class="applicant-details">
                                         <div class="applicant-name">${app.userName}</div>
-                                        <div class="applicant-meta">신청일: ${new Date(app.timestamp).toLocaleDateString()}</div>
+                                        <div class="applicant-meta">신청일: ${timeDisplay}</div>
                                     </div>
                                 </div>
                                 <button class="assign-btn" onclick="assignDuty('${dateStr}', '${duty.id}', '${app.userId}', '${app.userName}')">
@@ -990,7 +999,12 @@
                     if (!confirmed) {
                         const dayApplications = applications
                             .filter(a => a.date === dateStr && a.dutyId === duty.id)
-                            .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+                            .sort((a, b) => {
+                                // createdAt이 있으면 createdAt 기준, 없으면 timestamp 기준
+                                const timeA = a.createdAt ? a.createdAt.toDate() : new Date(a.timestamp);
+                                const timeB = b.createdAt ? b.createdAt.toDate() : new Date(b.timestamp);
+                                return timeA - timeB;
+                            });
                         
                         if (dayApplications.length > 0) {
                             const firstApplicant = dayApplications[0];
