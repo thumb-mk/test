@@ -33,22 +33,22 @@
 
         .header h1 {
             color: #4f46e5;
-            font-size: 1.5rem;
+            font-size: 1.2rem;
         }
 
         .header-actions {
             display: flex;
-            gap: 10px;
+            gap: 8px;
         }
 
         .btn {
-            padding: 8px 16px;
+            padding: 6px 12px;
             border: none;
             border-radius: 6px;
             cursor: pointer;
             font-weight: 600;
             transition: all 0.3s;
-            font-size: 0.9rem;
+            font-size: 0.8rem;
         }
 
         .btn-primary {
@@ -91,7 +91,7 @@
         }
 
         .section-title {
-            font-size: 1.5rem;
+            font-size: 1.3rem;
             font-weight: 700;
             color: #1f2937;
             margin-bottom: 20px;
@@ -102,14 +102,13 @@
 
         .section-title::before {
             content: "📊";
-            font-size: 1.2rem;
+            font-size: 1rem;
         }
 
         /* 통계 요약 카드 */
         .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
+            display: flex;
+            justify-content: center;
             margin-bottom: 30px;
         }
 
@@ -117,8 +116,10 @@
             background: linear-gradient(135deg, #f8fafc, #e2e8f0);
             border: 1px solid #e5e7eb;
             border-radius: 12px;
-            padding: 20px;
+            padding: 25px;
             transition: all 0.3s;
+            max-width: 400px;
+            width: 100%;
         }
 
         .stat-card:hover {
@@ -168,14 +169,15 @@
             font-weight: 600;
             color: #374151;
             white-space: nowrap;
+            font-size: 0.9rem;
         }
 
         .filter-group select,
         .filter-group input {
-            padding: 8px 12px;
+            padding: 6px 10px;
             border: 2px solid #e5e7eb;
             border-radius: 6px;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             transition: all 0.3s;
         }
 
@@ -200,10 +202,10 @@
 
         .count-table th,
         .count-table td {
-            padding: 12px 10px;
+            padding: 10px 8px;
             text-align: center;
             border-bottom: 1px solid #e5e7eb;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
         }
 
         .count-table th {
@@ -352,30 +354,93 @@
 
         /* 모바일 대응 */
         @media (max-width: 768px) {
+            .header {
+                padding: 10px 12px;
+            }
+            
+            .header h1 {
+                font-size: 1rem;
+                white-space: nowrap;
+            }
+            
+            .header-actions {
+                gap: 6px;
+            }
+            
+            .btn {
+                padding: 5px 8px;
+                font-size: 0.7rem;
+                white-space: nowrap;
+            }
+            
             .main-container {
                 padding: 0 10px;
             }
             
+            .content-section {
+                padding: 20px 15px;
+                margin-bottom: 15px;
+            }
+            
+            .section-title {
+                font-size: 1.1rem;
+                margin-bottom: 15px;
+            }
+            
+            .section-title::before {
+                font-size: 0.9rem;
+            }
+            
             .stats-grid {
                 grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            
+            .stat-card {
+                padding: 20px;
             }
             
             .filter-section {
                 flex-direction: column;
                 align-items: stretch;
+                gap: 10px;
+                margin-bottom: 15px;
             }
             
             .filter-group {
                 justify-content: space-between;
             }
             
-            .count-table {
+            .filter-group label {
                 font-size: 0.8rem;
+            }
+            
+            .filter-group select,
+            .filter-group input {
+                padding: 5px 8px;
+                font-size: 0.75rem;
+            }
+            
+            .count-table {
+                font-size: 0.7rem;
             }
             
             .count-table th,
             .count-table td {
-                padding: 8px 6px;
+                padding: 6px 4px;
+            }
+            
+            .duty-type-badge,
+            .grade-badge,
+            .battalion-badge,
+            .type-badge {
+                padding: 2px 4px;
+                font-size: 0.65rem;
+            }
+            
+            .my-indicator {
+                padding: 1px 4px;
+                font-size: 0.6rem;
             }
         }
 
@@ -630,60 +695,84 @@
             filteredData.sort((a, b) => a.weekdayCount - b.weekdayCount);
         }
 
-        // 통계 그리드 업데이트
+        // 통계 그리드 업데이트 (개인화된 버전)
         function updateStatsGrid() {
             const statsGrid = document.getElementById('statsGrid');
             
-            // 그룹별 최소 당직 횟수 계산
-            const groups = [
-                { name: '3학년 1대대', filter: u => u.grade === 3 && u.battalion === 1 },
-                { name: '3학년 2대대', filter: u => u.grade === 3 && u.battalion === 2 },
-                { name: '4학년 1대대 평생도', filter: u => u.grade === 4 && u.battalion === 1 && u.type === '평생도' },
-                { name: '4학년 2대대 평생도', filter: u => u.grade === 4 && u.battalion === 2 && u.type === '평생도' },
-                { name: '4학년 근무생도', filter: u => u.grade === 4 && u.type === '근무생도' }
-            ];
-            
-            let statsHTML = '';
-            
-            groups.forEach(group => {
-                const groupUsers = users.filter(group.filter);
-                if (groupUsers.length === 0) return;
-                
-                // 해당 그룹의 당직 횟수 데이터
-                const groupCountData = groupUsers.map(user => {
-                    const countData = dutyCounts.find(dc => dc.userId === user.id);
-                    return {
-                        ...user,
-                        weekdayCount: countData ? (countData.weekdayCount || 0) : 0,
-                        weekendCount: countData ? (countData.weekendCount || 0) : 0
+            // 현재 사용자의 그룹 결정
+            let userGroup = null;
+            if (currentUser.grade === 3) {
+                userGroup = {
+                    name: `${currentUser.grade}학년 ${currentUser.battalion}대대`,
+                    filter: u => u.grade === currentUser.grade && u.battalion === currentUser.battalion
+                };
+            } else if (currentUser.grade === 4) {
+                if (currentUser.type === '근무생도') {
+                    userGroup = {
+                        name: '4학년 근무생도',
+                        filter: u => u.grade === 4 && u.type === '근무생도'
                     };
-                });
-                
-                // 최소 평당/주당 횟수 계산
-                const minWeekday = Math.min(...groupCountData.map(u => u.weekdayCount));
-                const minWeekend = Math.min(...groupCountData.map(u => u.weekendCount));
-                
-                // 최소 횟수에 해당하는 인원 수
-                const minWeekdayCount = groupCountData.filter(u => u.weekdayCount === minWeekday).length;
-                const minWeekendCount = groupCountData.filter(u => u.weekendCount === minWeekend).length;
-                
-                statsHTML += `
-                    <div class="stat-card">
-                        <h3>${group.name}</h3>
-                        <div class="duty-info">
-                            <div style="color: #1d4ed8; font-weight: 600;">
-                                평당 최소: ${minWeekday}회 (${minWeekdayCount}명)
-                            </div>
-                            <div style="color: #dc2626; font-weight: 600;">
-                                주당 최소: ${minWeekend}회 (${minWeekendCount}명)
-                            </div>
-                        </div>
-                        <div class="stat-label">총 ${groupUsers.length}명</div>
-                    </div>
-                `;
+                } else {
+                    userGroup = {
+                        name: `4학년 ${currentUser.battalion}대대 ${currentUser.type}`,
+                        filter: u => u.grade === 4 && u.battalion === currentUser.battalion && u.type === currentUser.type
+                    };
+                }
+            }
+            
+            if (!userGroup) {
+                statsGrid.innerHTML = '<div class="stat-card"><h3>그룹 정보를 찾을 수 없습니다</h3></div>';
+                return;
+            }
+            
+            const groupUsers = users.filter(userGroup.filter);
+            if (groupUsers.length === 0) {
+                statsGrid.innerHTML = `<div class="stat-card"><h3>${userGroup.name}</h3><div class="stat-label">해당 그룹에 속한 사용자가 없습니다</div></div>`;
+                return;
+            }
+            
+            // 해당 그룹의 당직 횟수 데이터
+            const groupCountData = groupUsers.map(user => {
+                const countData = dutyCounts.find(dc => dc.userId === user.id);
+                return {
+                    ...user,
+                    weekdayCount: countData ? (countData.weekdayCount || 0) : 0,
+                    weekendCount: countData ? (countData.weekendCount || 0) : 0
+                };
             });
             
-            statsGrid.innerHTML = statsHTML;
+            // 최소 평당/주당 횟수 계산
+            const minWeekday = Math.min(...groupCountData.map(u => u.weekdayCount));
+            const minWeekend = Math.min(...groupCountData.map(u => u.weekendCount));
+            
+            // 최소 횟수에 해당하는 인원 수
+            const minWeekdayCount = groupCountData.filter(u => u.weekdayCount === minWeekday).length;
+            const minWeekendCount = groupCountData.filter(u => u.weekendCount === minWeekend).length;
+            
+            // 내 현재 당직 횟수
+            const myData = groupCountData.find(u => u.id === currentUser.id);
+            const myWeekday = myData ? myData.weekdayCount : 0;
+            const myWeekend = myData ? myData.weekendCount : 0;
+            
+            statsGrid.innerHTML = `
+                <div class="stat-card">
+                    <h3>${userGroup.name}</h3>
+                    <div class="duty-info">
+                        <div style="color: #1d4ed8; font-weight: 600; margin-bottom: 8px;">
+                            평당 최소: ${minWeekday}회 (${minWeekdayCount}명)
+                        </div>
+                        <div style="color: #dc2626; font-weight: 600; margin-bottom: 8px;">
+                            주당 최소: ${minWeekend}회 (${minWeekendCount}명)
+                        </div>
+                        <div style="border-top: 1px solid #e5e7eb; padding-top: 8px; margin-top: 8px;">
+                            <div style="color: #3b82f6; font-weight: 600;">
+                                내 현황: 평당 ${myWeekday}회 / 주당 ${myWeekend}회
+                            </div>
+                        </div>
+                    </div>
+                    <div class="stat-label">총 ${groupUsers.length}명</div>
+                </div>
+            `;
         }
 
         // 카운트 테이블 업데이트
