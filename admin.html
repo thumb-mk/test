@@ -66,6 +66,11 @@
             color: white;
         }
 
+        .btn-info {
+            background: #3b82f6;
+            color: white;
+        }
+
         .btn:hover {
             transform: translateY(-1px);
         }
@@ -176,6 +181,22 @@
             border-bottom: 1px solid #e5e7eb;
         }
 
+        /* 요일별 색상 구분 */
+        .calendar-header-day.weekday {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        .calendar-header-day.weekend {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .calendar-header-day.sunday {
+            background: #fef3c7;
+            color: #f59e0b;
+        }
+
         .calendar-days {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
@@ -202,6 +223,19 @@
         .calendar-day.today {
             background: linear-gradient(135deg, #eff6ff, #dbeafe);
             border: 2px solid #3b82f6;
+        }
+
+        /* 요일별 달력 날짜 색상 */
+        .calendar-day.weekday-date {
+            border-left: 3px solid #3b82f6;
+        }
+
+        .calendar-day.weekend-date {
+            border-left: 3px solid #ef4444;
+        }
+
+        .calendar-day.sunday-date {
+            border-left: 3px solid #f59e0b;
         }
 
         .day-number {
@@ -257,6 +291,28 @@
 
         .calendar-day.confirmed {
             background: #dcfce7;
+        }
+
+        /* 당직 타입 표시 */
+        .duty-type-indicator {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .duty-type-indicator.weekday {
+            background: #3b82f6;
+        }
+
+        .duty-type-indicator.weekend {
+            background: #ef4444;
+        }
+
+        .duty-type-indicator.sunday {
+            background: #f59e0b;
         }
 
         /* 모달 스타일 */
@@ -432,6 +488,31 @@
             font-style: italic;
         }
 
+        /* 당직 타입 뱃지 */
+        .duty-type-badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            margin-left: 5px;
+        }
+
+        .duty-type-badge.weekday {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        .duty-type-badge.weekend {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .duty-type-badge.sunday {
+            background: #fef3c7;
+            color: #f59e0b;
+        }
+
         /* 모바일 대응 */
         @media (max-width: 768px) {
             .main-container {
@@ -440,6 +521,11 @@
             
             .control-actions {
                 flex-direction: column;
+            }
+            
+            .header-actions {
+                flex-direction: column;
+                gap: 5px;
             }
             
             .calendar-header {
@@ -476,6 +562,7 @@
     <div class="header">
         <h1>🛡️ 당직 관리 시스템 (관리자)</h1>
         <div class="header-actions">
+            <button class="btn btn-info" onclick="goToCountManager()">당직 횟수 관리</button>
             <button class="btn btn-secondary" onclick="goToDashboard()">일반 화면</button>
             <button class="btn btn-danger" onclick="logout()">로그아웃</button>
         </div>
@@ -486,7 +573,7 @@
         <!-- 제어 패널 -->
         <div class="control-panel">
             <div class="control-header">
-                <span>당직 신청 관리</span>
+                <span>당직 신청 관리 (평당/주당 시스템)</span>
                 <div class="status-indicator" id="statusIndicator"></div>
             </div>
             <div class="control-actions">
@@ -499,6 +586,11 @@
                 <button class="btn btn-danger" onclick="clearAllDataAdmin()">
                     데이터 초기화
                 </button>
+            </div>
+            <div style="margin-top: 10px; font-size: 0.9rem; color: #6b7280;">
+                <strong>당직 구분:</strong> 
+                <span class="duty-type-badge weekday">평당 (월~목, 일×1.5)</span>
+                <span class="duty-type-badge weekend">주당 (금~토)</span>
             </div>
         </div>
 
@@ -517,13 +609,13 @@
             
             <div class="calendar-grid">
                 <!-- 요일 헤더 -->
-                <div class="calendar-header-day">일</div>
-                <div class="calendar-header-day">월</div>
-                <div class="calendar-header-day">화</div>
-                <div class="calendar-header-day">수</div>
-                <div class="calendar-header-day">목</div>
-                <div class="calendar-header-day">금</div>
-                <div class="calendar-header-day">토</div>
+                <div class="calendar-header-day sunday">일</div>
+                <div class="calendar-header-day weekday">월</div>
+                <div class="calendar-header-day weekday">화</div>
+                <div class="calendar-header-day weekday">수</div>
+                <div class="calendar-header-day weekday">목</div>
+                <div class="calendar-header-day weekend">금</div>
+                <div class="calendar-header-day weekend">토</div>
             </div>
             
             <!-- 달력 날짜들이 여기에 생성됩니다 -->
@@ -537,7 +629,7 @@
             <button class="close-btn" onclick="closeManageModal()">&times;</button>
             <div class="modal-header">
                 <div class="modal-title" id="manageModalTitle">7월 1일 당직 배치</div>
-                <div class="modal-subtitle">당직별 신청자를 확인하고 배치를 결정하세요</div>
+                <div class="modal-subtitle" id="manageModalSubtitle">당직별 신청자를 확인하고 배치를 결정하세요</div>
             </div>
             
             <div id="dutyManagement" class="duty-management">
@@ -567,8 +659,9 @@
         let applications = [];
         let confirmedDuties = [];
         let applicationEnabled = true;
+        let dutyCounts = [];
 
-        // 당직 종류 정의 (수정된 버전)
+        // 당직 종류 정의
         const dutyTypes = [
             { id: 'commander_total', name: '당직총사령생도', grade: 4, type: '근무생도', buildings: [1, 2] },
             { id: 'commander_wing', name: '전대당직사관생도(4)', grade: 4, type: '평생도', buildings: [1, 2] },
@@ -578,6 +671,22 @@
             { id: 'commander_battalion_2', name: '2대대당직사령생도', grade: 4, type: '평생도', buildings: [2] },
             { id: 'officer_battalion_2', name: '2대대당직사관생도', grade: 3, type: '일반', buildings: [2] }
         ];
+
+        // 요일별 당직 타입 및 가중치 결정
+        function getDutyTypeAndWeight(date) {
+            const dayOfWeek = new Date(date).getDay(); // 0: 일요일, 1: 월요일, ..., 6: 토요일
+            
+            if (dayOfWeek >= 1 && dayOfWeek <= 4) {
+                // 월~목: 평일당직 1.0
+                return { type: 'weekday', weight: 1.0, displayName: '평당' };
+            } else if (dayOfWeek === 5 || dayOfWeek === 6) {
+                // 금~토: 주말당직 1.0
+                return { type: 'weekend', weight: 1.0, displayName: '주당' };
+            } else {
+                // 일요일: 평일당직 1.5
+                return { type: 'weekday', weight: 1.5, displayName: '평당(×1.5)' };
+            }
+        }
 
         // 로컬 날짜를 YYYY-MM-DD 형식으로 변환하는 헬퍼 함수
         function formatLocalDate(date) {
@@ -589,9 +698,7 @@
 
         // 특정 날짜에 사용할 당직 종류 결정
         function getDutiesForDate(date) {
-            const dayOfWeek = date.getDay(); // 0: 일요일, 1: 월요일, ..., 6: 토요일
-            
-            // 금요일(5)과 토요일(6)에는 전대당직사관생도(3) 제외
+            const dayOfWeek = date.getDay();
             if (dayOfWeek === 5 || dayOfWeek === 6) {
                 return dutyTypes.filter(duty => duty.id !== 'officer_wing');
             } else {
@@ -622,7 +729,7 @@
                 if (doc.exists) {
                     return doc.data().enabled;
                 } else {
-                    return true; // 기본값
+                    return true;
                 }
             } catch (error) {
                 console.error('신청 상태 가져오기 오류:', error);
@@ -659,14 +766,35 @@
                 return [];
             }
         }
+
+        // 당직 횟수 가져오기 (V2)
+        async function getDutyCounts() {
+            try {
+                const snapshot = await db.collection('dutyCountsV2').get();
+                const dutyCounts = [];
+                snapshot.forEach(doc => {
+                    dutyCounts.push({ id: doc.id, ...doc.data() });
+                });
+                return dutyCounts;
+            } catch (error) {
+                console.error('당직 횟수 가져오기 오류:', error);
+                return [];
+            }
+        }
         
-        // 당직 배치
-        async function saveConfirmedDuty(dutyData) {
+        // 당직 배치 (수동 배치용)
+        async function saveConfirmedDuty(dutyData, isManual = true) {
             try {
                 const docRef = await db.collection('confirmedDuties').add({
                     ...dutyData,
                     assignedAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
+                
+                // 수동 배치시에만 당직 횟수 실시간 업데이트
+                if (isManual) {
+                    await updateDutyCountV2(dutyData.userId, dutyData.userName, dutyData.date);
+                }
+                
                 return { success: true, id: docRef.id };
             } catch (error) {
                 console.error('당직 배치 저장 오류:', error);
@@ -674,8 +802,49 @@
             }
         }
         
-        // 당직 배치 취소
-        async function removeConfirmedDuty(date, dutyId) {
+        // 당직 횟수 업데이트 (V2 - 평당/주당 구분)
+        async function updateDutyCountV2(userId, userName, dutyDate) {
+            try {
+                const { type, weight } = getDutyTypeAndWeight(dutyDate);
+                const snapshot = await db.collection('dutyCountsV2').where('userId', '==', userId).get();
+                
+                if (snapshot.empty) {
+                    // 새로운 카운트 생성
+                    const newCount = {
+                        userId: userId,
+                        userName: userName,
+                        weekdayCount: type === 'weekday' ? weight : 0,
+                        weekendCount: type === 'weekend' ? weight : 0,
+                        lastDutyDate: dutyDate,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    };
+                    await db.collection('dutyCountsV2').add(newCount);
+                } else {
+                    // 기존 카운트 업데이트
+                    const doc = snapshot.docs[0];
+                    const updateData = {
+                        lastDutyDate: dutyDate,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    };
+                    
+                    if (type === 'weekday') {
+                        updateData.weekdayCount = firebase.firestore.FieldValue.increment(weight);
+                    } else {
+                        updateData.weekendCount = firebase.firestore.FieldValue.increment(weight);
+                    }
+                    
+                    await doc.ref.update(updateData);
+                }
+                
+                return { success: true };
+            } catch (error) {
+                console.error('당직 횟수 업데이트 오류:', error);
+                return { success: false, error: error.message };
+            }
+        }
+        
+        // 당직 배치 취소 (수동 취소용)
+        async function removeConfirmedDuty(date, dutyId, isManual = true) {
             try {
                 const snapshot = await db.collection('confirmedDuties')
                     .where('date', '==', date)
@@ -684,6 +853,13 @@
                 
                 const deletePromises = [];
                 snapshot.forEach(doc => {
+                    const data = doc.data();
+                    
+                    // 수동 취소시에만 당직 횟수 실시간 감소
+                    if (isManual) {
+                        decrementDutyCountV2(data.userId, data.date);
+                    }
+                    
                     deletePromises.push(doc.ref.delete());
                 });
                 
@@ -691,6 +867,46 @@
                 return { success: true };
             } catch (error) {
                 console.error('당직 배치 취소 오류:', error);
+                return { success: false, error: error.message };
+            }
+        }
+        
+        // 당직 횟수 감소 (V2 - 평당/주당 구분)
+        async function decrementDutyCountV2(userId, dutyDate) {
+            try {
+                const { type, weight } = getDutyTypeAndWeight(dutyDate);
+                const snapshot = await db.collection('dutyCountsV2').where('userId', '==', userId).get();
+                
+                if (!snapshot.empty) {
+                    const doc = snapshot.docs[0];
+                    const currentData = doc.data();
+                    const currentWeekday = currentData.weekdayCount || 0;
+                    const currentWeekend = currentData.weekendCount || 0;
+                    
+                    let newWeekday = currentWeekday;
+                    let newWeekend = currentWeekend;
+                    
+                    if (type === 'weekday') {
+                        newWeekday = Math.max(0, currentWeekday - weight);
+                    } else {
+                        newWeekend = Math.max(0, currentWeekend - weight);
+                    }
+                    
+                    // 둘 다 0이면 문서 삭제, 아니면 업데이트
+                    if (newWeekday === 0 && newWeekend === 0) {
+                        await doc.ref.delete();
+                    } else {
+                        await doc.ref.update({
+                            weekdayCount: newWeekday,
+                            weekendCount: newWeekend,
+                            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                    }
+                }
+                
+                return { success: true };
+            } catch (error) {
+                console.error('당직 횟수 감소 오류:', error);
                 return { success: false, error: error.message };
             }
         }
@@ -703,6 +919,7 @@
             applications = await getApplications();
             confirmedDuties = await getConfirmedDuties();
             applicationEnabled = await getApplicationStatus();
+            dutyCounts = await getDutyCounts();
             
             updateControlPanel();
             updateCalendar();
@@ -767,6 +984,16 @@
                 const dayElement = document.createElement('div');
                 dayElement.className = 'calendar-day';
                 
+                // 요일별 색상 클래스 추가
+                const dayOfWeek = cellDate.getDay();
+                if (dayOfWeek === 0) {
+                    dayElement.classList.add('sunday-date');
+                } else if (dayOfWeek >= 1 && dayOfWeek <= 4) {
+                    dayElement.classList.add('weekday-date');
+                } else {
+                    dayElement.classList.add('weekend-date');
+                }
+                
                 if (cellDate.getMonth() !== month) {
                     dayElement.classList.add('other-month');
                 }
@@ -787,8 +1014,13 @@
                     dayElement.classList.add('has-applications');
                 }
                 
+                // 당직 타입 표시기 추가
+                const { type } = getDutyTypeAndWeight(dateStr);
+                const dutyTypeClass = dayOfWeek === 0 ? 'sunday' : type;
+                
                 dayElement.innerHTML = `
                     <div class="day-number">${cellDate.getDate()}</div>
+                    <div class="duty-type-indicator ${dutyTypeClass}"></div>
                     <div class="duty-list" id="duties-${dateStr}">
                         ${generateDutyList(dateStr, cellDate)}
                     </div>
@@ -799,11 +1031,10 @@
             }
         }
 
-        // 특정 날짜의 당직 목록 생성 (수정된 버전)
+        // 특정 날짜의 당직 목록 생성
         function generateDutyList(dateStr, date) {
             let html = '';
             
-            // 해당 날짜에 사용할 당직 종류 결정
             const dutiesForDate = getDutiesForDate(date);
             
             dutiesForDate.forEach(duty => {
@@ -845,15 +1076,20 @@
             updateCalendar();
         }
 
-        // 당직 배치 관리 모달 표시 (수정된 버전)
+        // 당직 배치 관리 모달 표시
         function showManageModal(dateStr) {
-            const date = new Date(dateStr + 'T00:00:00'); // 로컬 시간으로 파싱
+            const date = new Date(dateStr + 'T00:00:00');
             const title = `${date.getMonth() + 1}월 ${date.getDate()}일 당직 배치`;
+            
+            // 당직 타입 정보 표시
+            const { displayName, weight } = getDutyTypeAndWeight(dateStr);
+            const subtitle = `당직별 신청자를 확인하고 배치를 결정하세요 (${displayName})`;
+            
             document.getElementById('manageModalTitle').textContent = title;
+            document.getElementById('manageModalSubtitle').textContent = subtitle;
             
             let content = '';
             
-            // 해당 날짜에 사용할 당직 종류 결정
             const dutiesForDate = getDutiesForDate(date);
             
             dutiesForDate.forEach(duty => {
@@ -861,7 +1097,6 @@
                 const dayApplications = applications
                     .filter(a => a.date === dateStr && a.dutyId === duty.id)
                     .sort((a, b) => {
-                        // createdAt이 있으면 createdAt 기준, 없으면 timestamp 기준
                         const timeA = a.createdAt ? a.createdAt.toDate() : new Date(a.timestamp);
                         const timeB = b.createdAt ? b.createdAt.toDate() : new Date(b.timestamp);
                         return timeA - timeB;
@@ -904,16 +1139,22 @@
                     `;
                 } else if (dayApplications.length > 0) {
                     dayApplications.forEach((app, index) => {
-                        // 신청 시간 표시 (createdAt 우선, 없으면 timestamp)
                         const appTime = app.createdAt ? app.createdAt.toDate() : new Date(app.timestamp);
                         const timeDisplay = appTime.toLocaleDateString() + ' ' + appTime.toLocaleTimeString();
+                        
+                        // 해당 사용자의 당직 횟수 표시 (V2)
+                        const userCount = dutyCounts.find(dc => dc.userId === app.userId);
+                        const weekdayCount = userCount ? (userCount.weekdayCount || 0) : 0;
+                        const weekendCount = userCount ? (userCount.weekendCount || 0) : 0;
+                        const totalCount = weekdayCount + weekendCount;
+                        const countDisplay = `(평${weekdayCount}/주${weekendCount}/총${totalCount})`;
                         
                         content += `
                             <div class="applicant-item">
                                 <div class="applicant-info">
                                     <div class="applicant-order">${index + 1}</div>
                                     <div class="applicant-details">
-                                        <div class="applicant-name">${app.userName}</div>
+                                        <div class="applicant-name">${app.userName} ${countDisplay}</div>
                                         <div class="applicant-meta">신청일: ${timeDisplay}</div>
                                     </div>
                                 </div>
@@ -936,7 +1177,9 @@
 
         // 당직 배치
         async function assignDuty(date, dutyId, userId, userName) {
-            if (confirm(`${userName}님을 해당 당직에 배치하시겠습니까?`)) {
+            const { displayName } = getDutyTypeAndWeight(date);
+            
+            if (confirm(`${userName}님을 해당 당직에 배치하시겠습니까?\n(${displayName} 카운트가 적용됩니다)`)) {
                 const newAssignment = {
                     date: date,
                     dutyId: dutyId,
@@ -951,7 +1194,8 @@
                     
                     // 데이터 새로고침
                     confirmedDuties = await getConfirmedDuties();
-                    showManageModal(date); // 모달 새로고침
+                    dutyCounts = await getDutyCounts();
+                    showManageModal(date);
                     updateCalendar();
                 } else {
                     alert('당직 배치 중 오류가 발생했습니다: ' + result.error);
@@ -961,7 +1205,9 @@
 
         // 당직 배치 취소
         async function cancelAssignment(date, dutyId) {
-            if (confirm('해당 당직 배치를 취소하시겠습니까?')) {
+            const { displayName } = getDutyTypeAndWeight(date);
+            
+            if (confirm(`해당 당직 배치를 취소하시겠습니까?\n(${displayName} 카운트가 감소됩니다)`)) {
                 const result = await removeConfirmedDuty(date, dutyId);
                 
                 if (result.success) {
@@ -969,7 +1215,8 @@
                     
                     // 데이터 새로고침
                     confirmedDuties = await getConfirmedDuties();
-                    showManageModal(date); // 모달 새로고침
+                    dutyCounts = await getDutyCounts();
+                    showManageModal(date);
                     updateCalendar();
                 } else {
                     alert('당직 배치 취소 중 오류가 발생했습니다: ' + result.error);
@@ -977,60 +1224,249 @@
             }
         }
 
-        // 자동 배치 (선착순)
+        // 사용자 목록 가져오기
+        async function getUsers() {
+            try {
+                const snapshot = await db.collection('users').get();
+                const users = [];
+                snapshot.forEach(doc => {
+                    users.push({ id: doc.id, ...doc.data() });
+                });
+                return users;
+            } catch (error) {
+                console.error('사용자 목록 가져오기 오류:', error);
+                return [];
+            }
+        }
+
+        // 당직 자격 확인
+        function isEligibleForDuty(user, duty) {
+            // 학년 확인
+            if (duty.grade !== user.grade) return false;
+            
+            // 근무 타입 확인
+            if (user.type === '근무생도' && duty.type !== '근무생도') return false;
+            if (user.type === '평생도' && duty.type === '근무생도') return false;
+            if (user.grade === 3 && duty.type !== '일반') return false;
+            
+            // 건물 확인 (대대별)
+            return duty.buildings.includes(user.battalion);
+        }
+
+        // 스마트 자동 배치 (신청자 우선, 미신청시 카운트 기반)
         async function autoAssign() {
-            if (!confirm('모든 미배치 당직을 선착순으로 자동 배치하시겠습니까?')) {
+            const currentYear = currentDate.getFullYear();
+            const currentMonth = currentDate.getMonth();
+            const monthName = `${currentYear}년 ${currentMonth + 1}월`;
+            
+            if (!confirm(`${monthName} 스마트 자동 배치를 시작하시겠습니까?\n\n✅ 신청자 있는 곳: 선착순 배치\n✅ 신청자 없는 곳: 평당/주당 카운트 적은 순 배치\n✅ 자격 조건 자동 확인\n\n※ 현재 달력에 표시된 달만 처리됩니다.`)) {
                 return;
             }
             
-            let assignedCount = 0;
-            const assignPromises = [];
-            
-            // 모든 날짜의 모든 당직 확인
-            const allDates = [...new Set(applications.map(a => a.date))];
-            
-            allDates.forEach(dateStr => {
-                const date = new Date(dateStr + 'T00:00:00'); // 로컬 시간으로 파싱
-                const dutiesForDate = getDutiesForDate(date);
+            try {
+                // 필요한 데이터 로드
+                const users = await getUsers();
+                const currentDutyCounts = await getDutyCounts();
                 
-                dutiesForDate.forEach(duty => {
-                    const confirmed = confirmedDuties.find(c => c.date === dateStr && c.dutyId === duty.id);
+                // 사용자별 당직 횟수 맵 생성
+                const userCountMap = {};
+                users.forEach(user => {
+                    const countData = currentDutyCounts.find(dc => dc.userId === user.id);
+                    userCountMap[user.id] = {
+                        ...user,
+                        weekdayCount: countData ? (countData.weekdayCount || 0) : 0,
+                        weekendCount: countData ? (countData.weekendCount || 0) : 0
+                    };
+                });
+                
+                let assignedCount = 0;
+                let appliedAssignments = 0;
+                let smartAssignments = 0;
+                const assignPromises = [];
+                
+                // 현재 달력에 표시된 달의 모든 날짜 생성
+                const allDates = [];
+                const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+                
+                for (let day = 1; day <= lastDayOfMonth; day++) {
+                    const date = new Date(currentYear, currentMonth, day);
+                    allDates.push(formatLocalDate(date));
+                }
+                
+                console.log(`${monthName} 자동배치 시작: ${allDates.length}일 처리`);
+                
+                for (const dateStr of allDates) {
+                    const date = new Date(dateStr + 'T00:00:00');
+                    const dutiesForDate = getDutiesForDate(date);
+                    const { type: dutyType } = getDutyTypeAndWeight(dateStr);
                     
-                    if (!confirmed) {
-                        const dayApplications = applications
-                            .filter(a => a.date === dateStr && a.dutyId === duty.id)
-                            .sort((a, b) => {
-                                // createdAt이 있으면 createdAt 기준, 없으면 timestamp 기준
-                                const timeA = a.createdAt ? a.createdAt.toDate() : new Date(a.timestamp);
-                                const timeB = b.createdAt ? b.createdAt.toDate() : new Date(b.timestamp);
-                                return timeA - timeB;
-                            });
+                    for (const duty of dutiesForDate) {
+                        const confirmed = confirmedDuties.find(c => c.date === dateStr && c.dutyId === duty.id);
                         
-                        if (dayApplications.length > 0) {
-                            const firstApplicant = dayApplications[0];
-                            const newAssignment = {
-                                date: dateStr,
-                                dutyId: duty.id,
-                                userId: firstApplicant.userId,
-                                userName: firstApplicant.userName
-                            };
+                        if (!confirmed) {
+                            // 1. 현재 달의 신청자만 확인
+                            const dayApplications = applications
+                                .filter(a => {
+                                    const appDate = new Date(a.date);
+                                    return a.date === dateStr && 
+                                           a.dutyId === duty.id && 
+                                           appDate.getFullYear() === currentYear && 
+                                           appDate.getMonth() === currentMonth;
+                                })
+                                .sort((a, b) => {
+                                    const timeA = a.createdAt ? a.createdAt.toDate() : new Date(a.timestamp);
+                                    const timeB = b.createdAt ? b.createdAt.toDate() : new Date(b.timestamp);
+                                    return timeA - timeB;
+                                });
                             
-                            assignPromises.push(saveConfirmedDuty(newAssignment));
-                            assignedCount++;
+                            let selectedUser = null;
+                            
+                            if (dayApplications.length > 0) {
+                                // 신청자 있음: 선착순 배치
+                                const firstApplicant = dayApplications[0];
+                                selectedUser = {
+                                    userId: firstApplicant.userId,
+                                    userName: firstApplicant.userName
+                                };
+                                appliedAssignments++;
+                                
+                            } else {
+                                // 신청자 없음: 스마트 배치 (카운트 기반)
+                                const eligibleUsers = users.filter(user => isEligibleForDuty(user, duty));
+                                
+                                if (eligibleUsers.length > 0) {
+                                    // 이미 해당 날짜에 다른 당직이 배정된 사용자 제외
+                                    const availableUsers = eligibleUsers.filter(user => {
+                                        const userAlreadyAssigned = confirmedDuties.some(cd => 
+                                            cd.date === dateStr && cd.userId === user.id
+                                        );
+                                        const userWillBeAssigned = assignPromises.some(promise => 
+                                            promise.assignment && promise.assignment.date === dateStr && promise.assignment.userId === user.id
+                                        );
+                                        
+                                        // 일주일 이내에 당직을 선 사용자 제외 (7일 = 604800000ms)
+                                        const currentDate = new Date(dateStr);
+                                        const oneWeekBefore = new Date(currentDate.getTime() - 7 * 24 * 60 * 60 * 1000);
+                                        const oneWeekAfter = new Date(currentDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+                                        
+                                        // 기존 확정 당직에서 일주일 이내 체크
+                                        const userHasRecentDuty = confirmedDuties.some(cd => {
+                                            if (cd.userId !== user.id) return false;
+                                            const dutyDate = new Date(cd.date);
+                                            return dutyDate >= oneWeekBefore && dutyDate <= oneWeekAfter && cd.date !== dateStr;
+                                        });
+                                        
+                                        // 이번 자동배치에서 배정될 당직에서 일주일 이내 체크
+                                        const userWillHaveRecentDuty = assignPromises.some(promise => {
+                                            if (!promise.assignment || promise.assignment.userId !== user.id) return false;
+                                            const dutyDate = new Date(promise.assignment.date);
+                                            return dutyDate >= oneWeekBefore && dutyDate <= oneWeekAfter && promise.assignment.date !== dateStr;
+                                        });
+                                        
+                                        return !userAlreadyAssigned && !userWillBeAssigned && !userHasRecentDuty && !userWillHaveRecentDuty;
+                                    });
+                                    
+                                    if (availableUsers.length > 0) {
+                                        // 당직 타입에 따라 정렬 (평당/주당 카운트 기준)
+                                        const sortedUsers = availableUsers
+                                            .map(user => ({
+                                                ...user,
+                                                ...userCountMap[user.id]
+                                            }))
+                                            .sort((a, b) => {
+                                                // 1순위: 평당/주당 카운트
+                                                let countDiff;
+                                                if (dutyType === 'weekday') {
+                                                    countDiff = a.weekdayCount - b.weekdayCount;
+                                                } else {
+                                                    countDiff = a.weekendCount - b.weekendCount;
+                                                }
+                                                
+                                                if (countDiff !== 0) {
+                                                    return countDiff;
+                                                }
+                                                
+                                                // 2순위: 최근 당직일 (오래된 순)
+                                                const aLastDuty = dutyCounts.find(dc => dc.userId === a.id)?.lastDutyDate;
+                                                const bLastDuty = dutyCounts.find(dc => dc.userId === b.id)?.lastDutyDate;
+                                                
+                                                // 당직 경험이 없는 사람이 우선
+                                                if (!aLastDuty && !bLastDuty) {
+                                                    // 둘 다 당직 경험 없음: 랜덤
+                                                    return Math.random() - 0.5;
+                                                }
+                                                if (!aLastDuty) return -1; // a가 당직 경험 없음 (우선)
+                                                if (!bLastDuty) return 1;  // b가 당직 경험 없음 (우선)
+                                                
+                                                // 둘 다 당직 경험 있음: 오래된 순
+                                                const dateDiff = new Date(aLastDuty) - new Date(bLastDuty);
+                                                if (dateDiff !== 0) {
+                                                    return dateDiff; // 오래된 날짜가 우선
+                                                }
+                                                
+                                                // 3순위: 최근 당직일까지 같음 → 랜덤
+                                                return Math.random() - 0.5;
+                                            });
+                                        
+                                        const bestCandidate = sortedUsers[0];
+                                        selectedUser = {
+                                            userId: bestCandidate.id,
+                                            userName: bestCandidate.name
+                                        };
+                                        
+                                        // 메모리에서 카운트 업데이트하지 않음 (실제 카운트는 count.html에서만)
+                                        // const { weight } = getDutyTypeAndWeight(dateStr);
+                                        // if (dutyType === 'weekday') {
+                                        //     userCountMap[bestCandidate.id].weekdayCount += weight;
+                                        // } else {
+                                        //     userCountMap[bestCandidate.id].weekendCount += weight;
+                                        // }
+                                        
+                                        smartAssignments++;
+                                    }
+                                }
+                            }
+                            
+                            // 선택된 사용자가 있으면 배치
+                            if (selectedUser) {
+                                const newAssignment = {
+                                    date: dateStr,
+                                    dutyId: duty.id,
+                                    userId: selectedUser.userId,
+                                    userName: selectedUser.userName
+                                };
+                                
+                                assignPromises.push({
+                                    promise: saveConfirmedDuty(newAssignment, false), // 자동배치는 isManual = false
+                                    assignment: newAssignment
+                                });
+                                assignedCount++;
+                            }
                         }
                     }
-                });
-            });
-            
-            try {
-                await Promise.all(assignPromises);
-                alert(`${assignedCount}개의 당직이 자동 배치되었습니다.`);
+                }
+                
+                // 모든 배치 실행
+                console.log(`${monthName} 배치 실행 중...`, assignPromises.length, '건');
+                await Promise.all(assignPromises.map(item => item.promise));
+                
+                // 결과 메시지
+                const message = `✅ ${monthName} 스마트 자동 배치 완료!\n\n` +
+                    `📊 총 배치: ${assignedCount}건\n` +
+                    `👥 신청자 배치: ${appliedAssignments}건\n` +
+                    `🤖 스마트 배치: ${smartAssignments}건\n\n` +
+                    `⚠️ 카운트 반영 필요: "당직 횟수 관리" 페이지에서\n"전체 횟수 업데이트" 버튼을 눌러주세요.`;
+                
+                alert(message);
                 
                 // 데이터 새로고침
                 confirmedDuties = await getConfirmedDuties();
+                dutyCounts = await getDutyCounts();
                 updateCalendar();
+                
             } catch (error) {
-                alert('자동 배치 중 오류가 발생했습니다: ' + error.message);
+                console.error('자동 배치 오류:', error);
+                alert(`${monthName} 자동 배치 중 오류가 발생했습니다: ` + error.message);
             }
         }
 
@@ -1052,10 +1488,23 @@
                         batch.delete(doc.ref);
                     });
                     
+                    // dutyCountsV2 컬렉션 삭제
+                    const countsSnapshot = await db.collection('dutyCountsV2').get();
+                    countsSnapshot.forEach(doc => {
+                        batch.delete(doc.ref);
+                    });
+                    
+                    // 기존 dutyCounts 컬렉션도 삭제
+                    const oldCountsSnapshot = await db.collection('dutyCounts').get();
+                    oldCountsSnapshot.forEach(doc => {
+                        batch.delete(doc.ref);
+                    });
+                    
                     await batch.commit();
                     
                     applications = [];
                     confirmedDuties = [];
+                    dutyCounts = [];
                     
                     alert('모든 데이터가 초기화되었습니다.');
                     updateCalendar();
@@ -1068,6 +1517,11 @@
         // 관리 모달 닫기
         function closeManageModal() {
             document.getElementById('manageModal').classList.remove('show');
+        }
+
+        // 당직 횟수 관리 페이지로 이동
+        function goToCountManager() {
+            window.location.href = 'count.html';
         }
 
         // 일반 화면으로 이동
