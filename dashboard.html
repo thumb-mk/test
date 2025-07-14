@@ -125,6 +125,32 @@
             text-align: center;
         }
 
+        .header-buttons {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .view-count-btn {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .view-count-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
+        }
+
         .apply-btn {
             background: linear-gradient(135deg, #10b981, #059669);
             color: white;
@@ -544,9 +570,17 @@
                 order: 1;
             }
             
-            .apply-btn {
+            .header-buttons {
                 order: 2;
-                padding: 10px 20px;
+                flex-direction: column;
+                gap: 8px;
+                width: 100%;
+            }
+            
+            .view-count-btn,
+            .apply-btn {
+                width: 100%;
+                padding: 12px 20px;
                 font-size: 0.9rem;
             }
             
@@ -606,9 +640,14 @@
                 <div class="current-month" id="currentMonth">2025년 6월</div>
                 <button class="nav-btn" onclick="nextMonth()">›</button>
             </div>
-            <button class="apply-btn" id="applyBtn" onclick="showApplyModal()">
-                신청
-            </button>
+            <div class="header-buttons">
+                <button class="view-count-btn" onclick="goToViewCount()">
+                    📊 당직 현황
+                </button>
+                <button class="apply-btn" id="applyBtn" onclick="showApplyModal()">
+                    신청
+                </button>
+            </div>
         </div>
 
         <!-- 달력 -->
@@ -1279,6 +1318,11 @@
             document.getElementById('dayModal').classList.remove('show');
         }
 
+        // 당직 현황 페이지로 이동
+        function goToViewCount() {
+            window.location.href = 'view-count.html';
+        }
+
         // 로그아웃
         function logout() {
             if (confirm('로그아웃 하시겠습니까?')) {
@@ -1286,6 +1330,7 @@
                 window.location.href = 'index.html';
             }
         }
+
         // 모달 외부 클릭시 닫기
         window.onclick = function(event) {
             const applyModal = document.getElementById('applyModal');
