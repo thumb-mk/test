@@ -234,6 +234,16 @@
             background: #dcfce7;
         }
 
+        .calendar-day.my-duty {
+            background: linear-gradient(135deg, #e0e7ff, #c7d2fe);
+            border: 2px solid #6366f1;
+        }
+
+        .calendar-day.my-duty .day-number {
+            color: #4338ca;
+            font-weight: 700;
+        }
+
         .day-number {
             font-weight: 600;
             margin-bottom: 5px;
@@ -939,12 +949,15 @@
                 
                 // 날짜별 상태 확인 및 클래스 추가
                 const hasConfirmed = confirmedDuties.some(c => c.date === dateStr);
+                const hasMyDuty = confirmedDuties.some(c => c.date === dateStr && c.userId === currentUser.id);
                 const availableDuties = getAvailableDuties(cellDate);
                 const hasApplicationsForMyDuties = availableDuties.some(duty => 
                     applications.some(a => a.date === dateStr && a.dutyId === duty.id)
                 );
                 
-                if (hasConfirmed) {
+                if (hasMyDuty) {
+                    dayElement.classList.add('my-duty');
+                } else if (hasConfirmed) {
                     dayElement.classList.add('confirmed');
                 } else if (hasApplicationsForMyDuties) {
                     dayElement.classList.add('has-applications');
