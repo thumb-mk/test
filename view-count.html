@@ -1267,39 +1267,6 @@
             };
         }
 
-        // 자동 새로고침 (30초마다)
-        function startAutoRefresh() {
-            setInterval(async () => {
-                try {
-                    // 조용히 데이터 업데이트
-                    const newUsers = await getUsers();
-                    const newDutyCounts = await getDutyCounts();
-                    const newConfirmedDuties = await getConfirmedDuties();
-                    const newApplications = await getApplications();
-                    
-                    // 데이터가 변경되었는지 확인
-                    if (JSON.stringify(newUsers) !== JSON.stringify(users) ||
-                        JSON.stringify(newDutyCounts) !== JSON.stringify(dutyCounts) ||
-                        JSON.stringify(newConfirmedDuties) !== JSON.stringify(confirmedDuties) ||
-                        JSON.stringify(newApplications) !== JSON.stringify(applications)) {
-                        
-                        users = newUsers;
-                        dutyCounts = newDutyCounts;
-                        confirmedDuties = newConfirmedDuties;
-                        applications = newApplications;
-                        
-                        processData();
-                        updateStatsGrid();
-                        filterTable(); // 현재 필터 적용하여 업데이트
-                        
-                        console.log('데이터가 자동으로 업데이트되었습니다.');
-                    }
-                } catch (error) {
-                    console.error('자동 새로고침 오류:', error);
-                }
-            }, 30000); // 30초마다 체크
-        }
-
         // 키보드 단축키
         document.addEventListener('keydown', function(e) {
             // Ctrl + R: 새로고침
@@ -1314,10 +1281,8 @@
             }
         });
 
-        // 페이지 로드 완료 후 자동 새로고침 시작
-        window.addEventListener('load', function() {
-            startAutoRefresh();
-        });
+        // 🔥 자동 새로고침 관련 코드 완전 제거됨 🔥
+        // startAutoRefresh() 함수와 자동 호출 코드가 삭제되었습니다.
     </script>
 </body>
 </html>
