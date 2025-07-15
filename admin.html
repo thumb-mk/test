@@ -1192,8 +1192,8 @@
                         const userCount = dutyCounts.find(dc => dc.userId === app.userId);
                         const weekdayCount = userCount ? (userCount.weekdayCount || 0) : 0;
                         const weekendCount = userCount ? (userCount.weekendCount || 0) : 0;
-                        const totalCount = weekdayCount + weekendCount;
-                        const countDisplay = `(평${weekdayCount}/주${weekendCount}/총${totalCount})`;
+                        // 총 카운트 제거, 평당/주당만 표시
+                        const countDisplay = `(평${weekdayCount}/주${weekendCount})`;
                         
                         content += `
                             <div class="applicant-item">
