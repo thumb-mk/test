@@ -1142,34 +1142,6 @@
             alert('당직 횟수 데이터(평당/주당)가 CSV 파일로 다운로드되었습니다.');
         }
 
-        // 실시간 데이터 업데이트 (자동 새로고침)
-        function startAutoRefresh() {
-            setInterval(async () => {
-                console.log('데이터 자동 새로고침...');
-                
-                // 조용히 데이터 업데이트
-                const newUsers = await getUsers();
-                const newDutyCounts = await getDutyCounts();
-                const newConfirmedDuties = await getConfirmedDuties();
-                
-                // 데이터가 변경되었는지 확인
-                if (JSON.stringify(newUsers) !== JSON.stringify(users) ||
-                    JSON.stringify(newDutyCounts) !== JSON.stringify(dutyCounts) ||
-                    JSON.stringify(newConfirmedDuties) !== JSON.stringify(confirmedDuties)) {
-                    
-                    users = newUsers;
-                    dutyCounts = newDutyCounts;
-                    confirmedDuties = newConfirmedDuties;
-                    
-                    processData();
-                    updateStatsGrid();
-                    filterTable(); // 현재 필터 적용하여 업데이트
-                    
-                    console.log('데이터가 업데이트되었습니다.');
-                }
-            }, 30000); // 30초마다 체크
-        }
-
         // 페이지 이동 함수들
         function goToAdmin() {
             window.location.href = 'admin.html';
@@ -1207,11 +1179,6 @@
             }
         });
 
-        // 페이지 로드 완료 후 자동 새로고침 시작
-        window.addEventListener('load', function() {
-            startAutoRefresh();
-        });
-
         // 성능 최적화: 디바운스 함수
         function debounce(func, wait) {
             let timeout;
@@ -1227,6 +1194,9 @@
 
         // 검색 입력에 디바운스 적용
         document.getElementById('searchName').addEventListener('keyup', debounce(filterTable, 300));
+
+        // 🔥 자동 새로고침 관련 코드 완전 제거됨 🔥
+        // startAutoRefresh() 함수와 자동 호출 코드가 삭제되었습니다.
     </script>
 </body>
 </html>
