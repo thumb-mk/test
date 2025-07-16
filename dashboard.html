@@ -75,6 +75,44 @@
             background: #dc2626;
         }
 
+        /* 실시간 알림 스타일 */
+        .status-notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            border-left: 4px solid #10b981;
+            display: none;
+            z-index: 1000;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .status-notification.show {
+            display: block;
+        }
+
+        .status-notification.warning {
+            border-left-color: #f59e0b;
+        }
+
+        .status-notification.error {
+            border-left-color: #ef4444;
+        }
+
+        @keyframes slideIn {
+            from { 
+                transform: translateX(100%); 
+                opacity: 0; 
+            }
+            to { 
+                transform: translateX(0); 
+                opacity: 1; 
+            }
+        }
+
         .main-container {
             max-width: 1200px;
             margin: 15px auto;
@@ -176,7 +214,7 @@
             transform: none;
         }
 
-        /* 범례 추가 */
+        /* 범례 */
         .legend {
             background: rgba(255, 255, 255, 0.9);
             padding: 8px 12px;
@@ -270,7 +308,7 @@
             border: 3px solid #a855f7 !important;
         }
 
-        /* 새로운 색상 시스템 - 구분되는 색상 */
+        /* 색상 시스템 */
         .calendar-day.has-main-building {
             background: #e9d5ff; /* 연한 보라색 - 본관 */
         }
@@ -296,7 +334,6 @@
             font-weight: 700;
         }
 
-        /* 오늘 날짜가 내 확정 당직과 겹칠 때를 위한 추가 스타일 */
         .calendar-day.today.my-duty {
             background: linear-gradient(135deg, #e0e7ff, #c7d2fe) !important;
             border: 3px solid #a855f7 !important;
@@ -595,6 +632,13 @@
                 font-size: 0.6rem;
             }
             
+            .status-notification {
+                top: 10px;
+                right: 10px;
+                left: 10px;
+                padding: 12px 15px;
+            }
+            
             .main-container {
                 padding: 0 10px;
             }
@@ -686,6 +730,11 @@
     </style>
 </head>
 <body>
+    <!-- 실시간 신청 상태 알림 -->
+    <div id="statusNotification" class="status-notification">
+        <div id="statusMessage">신청 상태가 변경되었습니다.</div>
+    </div>
+
     <!-- 헤더 -->
     <div class="header">
         <h1>🎖️ 당직 신청 시스템</h1>
@@ -844,6 +893,7 @@
         let applications = [];
         let confirmedDuties = [];
         let applicationEnabled = true;
+        let applicationStatusListener = null; // 🔥 실시간 리스너 저장용
 
         // 당직 종류 정의
         const dutyTypes = [
@@ -856,7 +906,7 @@
             { id: 'officer_battalion_2', name: '2대대당직사관생도', grade: 3, type: '일반', buildings: [2], building_type: 'battalion' }
         ];
 
-        // Firebase 함수들
+        // 🔥 Firebase 함수들 🔥
         
         // 당직 신청 저장
         async function saveApplication(applicationData) {
@@ -883,7 +933,7 @@
             }
         }
         
-        // 당직 신청 목록 가져오기
+        // 당직 신청 목록 가져오기 (일회성)
         async function getApplications() {
             try {
                 const snapshot = await db.collection('applications').get();
@@ -898,7 +948,7 @@
             }
         }
         
-        // 확정된 당직 가져오기
+        // 확정된 당직 가져오기 (일회성)
         async function getConfirmedDuties() {
             try {
                 const snapshot = await db.collection('confirmedDuties').get();
@@ -913,7 +963,7 @@
             }
         }
         
-        // 신청 활성화 상태 가져오기
+        // 신청 활성화 상태 가져오기 (일회성)
         async function getApplicationStatus() {
             try {
                 const doc = await db.collection('settings').doc('applicationEnabled').get();
@@ -928,7 +978,66 @@
             }
         }
 
-        // 페이지 로드시 초기화
+        // 🔥 핵심 기능: 신청 상태 실시간 리스너 설정 🔥
+        function setupApplicationStatusListener() {
+            // 기존 리스너가 있다면 해제
+            if (applicationStatusListener) {
+                applicationStatusListener();
+            }
+
+            // 신청 상태 실시간 감시 시작
+            applicationStatusListener = db.collection('settings').doc('applicationEnabled')
+                .onSnapshot((doc) => {
+                    if (doc.exists) {
+                        const newStatus = doc.data().enabled;
+                        const previousStatus = applicationEnabled;
+                        
+                        // 상태가 실제로 변경된 경우에만 처리
+                        if (newStatus !== previousStatus) {
+                            applicationEnabled = newStatus;
+                            updateApplyButton();
+                            
+                            // 사용자에게 상태 변경 알림
+                            showStatusNotification(
+                                newStatus ? '✅ 당직 신청이 시작되었습니다!' : '⏰ 당직 신청이 마감되었습니다!',
+                                newStatus ? 'success' : 'warning'
+                            );
+                            
+                            console.log(`신청 상태 변경: ${previousStatus} → ${newStatus}`);
+                        }
+                    }
+                }, (error) => {
+                    console.error('신청 상태 리스너 오류:', error);
+                    showStatusNotification('❌ 상태 업데이트 중 오류가 발생했습니다.', 'error');
+                });
+        }
+
+        // 상태 변경 알림 표시
+        function showStatusNotification(message, type = 'success') {
+            const notification = document.getElementById('statusNotification');
+            const messageEl = document.getElementById('statusMessage');
+            
+            // 메시지 설정
+            messageEl.textContent = message;
+            
+            // 타입에 따른 스타일 적용
+            notification.className = 'status-notification show';
+            if (type === 'error') {
+                notification.classList.add('error');
+            } else if (type === 'warning') {
+                notification.classList.add('warning');
+            }
+            
+            // 3초 후 자동 숨김
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => {
+                    notification.className = 'status-notification';
+                }, 300);
+            }, 3000);
+        }
+
+        // 🔥 페이지 로드시 초기화 🔥
         window.addEventListener('DOMContentLoaded', async function() {
             // 로그인 확인
             const userStr = localStorage.getItem('currentUser');
@@ -941,15 +1050,27 @@
             currentUser = JSON.parse(userStr);
             updateUserInfo();
             
-            // Firebase에서 데이터 로드
+            // Firebase에서 데이터 로드 (일회성)
             console.log('Firebase에서 데이터를 로드하고 있습니다...');
             applications = await getApplications();
             confirmedDuties = await getConfirmedDuties();
             applicationEnabled = await getApplicationStatus();
             
+            // 🔥 신청 상태 실시간 리스너 설정 🔥
+            setupApplicationStatusListener();
+            
             updateCalendar();
             updateApplyButton();
-            console.log('데이터 로드 완료');
+            console.log('데이터 로드 완료 - 실시간 감시 시작');
+        });
+
+        // 🔥 페이지 언로드시 리스너 정리 🔥
+        window.addEventListener('beforeunload', function() {
+            if (applicationStatusListener) {
+                applicationStatusListener();
+                applicationStatusListener = null;
+                console.log('실시간 리스너 정리 완료');
+            }
         });
 
         // 사용자 정보 업데이트
@@ -965,9 +1086,11 @@
             if (applicationEnabled) {
                 applyBtn.disabled = false;
                 applyBtn.textContent = '신청';
+                applyBtn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
             } else {
                 applyBtn.disabled = true;
                 applyBtn.textContent = '신청 마감';
+                applyBtn.style.background = '#9ca3af';
             }
         }
 
@@ -1062,7 +1185,7 @@
             }
         }
 
-        // 건물별 신청 상태 확인 (새로운 함수)
+        // 건물별 신청 상태 확인
         function getBuildingStatus(dateStr, date) {
             const availableDuties = getAvailableDuties(date);
             let hasMain = false;
@@ -1249,7 +1372,7 @@
         // 신청 모달 표시
         function showApplyModal() {
             if (!applicationEnabled) {
-                alert('현재 당직 신청이 마감되었습니다.');
+                showStatusNotification('❌ 현재 당직 신청이 마감되었습니다.', 'warning');
                 return;
             }
             
@@ -1316,7 +1439,7 @@
             const dutyId = document.getElementById('applyDuty').value;
             
             if (!date || !dutyId) {
-                alert('날짜와 당직을 모두 선택해주세요.');
+                showStatusNotification('❌ 날짜와 당직을 모두 선택해주세요.', 'error');
                 return;
             }
             
@@ -1326,7 +1449,7 @@
             );
             
             if (existingApplication) {
-                alert('이미 해당 날짜에 같은 당직을 신청하셨습니다.');
+                showStatusNotification('❌ 이미 해당 날짜에 같은 당직을 신청하셨습니다.', 'warning');
                 return;
             }
             
@@ -1343,14 +1466,14 @@
             const result = await saveApplication(newApplication);
             
             if (result.success) {
-                alert('당직 신청이 완료되었습니다!');
+                showStatusNotification('✅ 당직 신청이 완료되었습니다!', 'success');
                 closeApplyModal();
                 
                 // 데이터 새로고침
                 applications = await getApplications();
                 updateCalendar();
             } else {
-                alert('당직 신청 중 오류가 발생했습니다: ' + result.error);
+                showStatusNotification('❌ 당직 신청 중 오류가 발생했습니다: ' + result.error, 'error');
             }
         }
 
@@ -1416,7 +1539,7 @@
                 const result = await cancelApplication(applicationId);
                 
                 if (result.success) {
-                    alert('당직 신청이 취소되었습니다.');
+                    showStatusNotification('✅ 당직 신청이 취소되었습니다.', 'success');
                     
                     // 데이터 새로고침
                     applications = await getApplications();
@@ -1433,7 +1556,7 @@
                         showDayModal(fullDateStr);
                     }
                 } else {
-                    alert('당직 신청 취소 중 오류가 발생했습니다: ' + result.error);
+                    showStatusNotification('❌ 당직 신청 취소 중 오류가 발생했습니다: ' + result.error, 'error');
                 }
             }
         }
@@ -1450,6 +1573,13 @@
 
         // 로그아웃
         function logout() {
+            // 🔥 리스너 정리 🔥
+            if (applicationStatusListener) {
+                applicationStatusListener();
+                applicationStatusListener = null;
+                console.log('로그아웃시 실시간 리스너 정리 완료');
+            }
+            
             if (confirm('로그아웃 하시겠습니까?')) {
                 localStorage.removeItem('currentUser');
                 window.location.href = 'index.html';
@@ -1468,9 +1598,6 @@
                 closeDayModal();
             }
         }
-
-        // 🔥 자동 새로고침 관련 코드 완전 제거됨 🔥
-        // startAutoRefresh() 함수와 자동 호출 코드가 삭제되었습니다.
     </script>
 </body>
 </html>
